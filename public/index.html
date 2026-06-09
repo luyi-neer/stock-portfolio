@@ -34,6 +34,10 @@
               <span class="summary-label">收益率</span>
               <span id="total-profit-pct" class="summary-value">--</span>
             </div>
+            <div class="summary-item">
+              <span class="summary-label">今日收益</span>
+              <span id="today-profit" class="summary-value">--</span>
+            </div>
           </div>
         </div>
         <div id="portfolio-list" class="card-list"></div>
@@ -61,7 +65,7 @@
         <form id="add-form" class="card" onsubmit="addStock(event)">
           <div class="form-row">
             <input type="text" id="input-code" placeholder="股票代码" required>
-            <input type="text" id="input-name" placeholder="名称" required>
+            <input type="text" id="input-name" placeholder="名称(选填，自动查询)">
           </div>
           <div class="form-row">
             <input type="number" id="input-shares" placeholder="数量(股)" required>

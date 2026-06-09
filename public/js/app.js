@@ -39,19 +39,22 @@ async function refreshQuotes() {
   try {
     const resp = await fetch('/api/quote?codes=' + codes);
     const quotes = await resp.json();
-    let totalValue = 0, totalCost = 0;
+    let totalValue = 0, totalCost = 0, todayProfit = 0;
 
     const listHtml = portfolio.map(stock => {
       const quote = quotes.find(q => q.code === stock.code) || {};
       const price = quote.price || 0;
       const changePct = quote.change_pct || 0;
+      const changeAmt = quote.change_amt || 0;
       const cost = stock.cost * stock.shares;
 
       if (price > 0) {
         const marketValue = price * stock.shares;
         const profit = marketValue - cost;
+        const dayProfit = changeAmt * stock.shares;
         totalValue += marketValue;
         totalCost += cost;
+        todayProfit += dayProfit;
 
         const colorClass = changePct > 0 ? 'up' : (changePct < 0 ? 'down' : '');
         const profitClass = profit > 0 ? 'up' : (profit < 0 ? 'down' : '');
@@ -92,6 +95,9 @@ async function refreshQuotes() {
     document.getElementById('total-profit').className = `summary-value ${cls}`;
     document.getElementById('total-profit-pct').textContent = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(1)}%`;
     document.getElementById('total-profit-pct').className = `summary-value ${cls}`;
+    const todayCls = todayProfit >= 0 ? 'up' : 'down';
+    document.getElementById('today-profit').textContent = `${todayProfit >= 0 ? '+' : ''}¥${todayProfit.toFixed(0)}`;
+    document.getElementById('today-profit').className = `summary-value ${todayCls}`;
     quotesLoaded = true;
   } catch (e) {
     document.getElementById('portfolio-list').innerHTML = '<div class="empty">获取行情失败，请重试</div>';
@@ -283,14 +289,28 @@ function searchNews() {
   loadNewsFor(code, content);
 }
 
-function addStock(event) {
+async function addStock(event) {
   event.preventDefault();
   const code = document.getElementById('input-code').value.trim();
-  const name = document.getElementById('input-name').value.trim();
+  let name = document.getElementById('input-name').value.trim();
   const shares = parseInt(document.getElementById('input-shares').value);
   const cost = parseFloat(document.getElementById('input-cost').value);
 
-  if (!code || !name || !shares || !cost) return;
+  if (!code || !shares || !cost) return;
+
+  if (!name) {
+    try {
+      const resp = await fetch('/api/quote?codes=' + code);
+      const quotes = await resp.json();
+      if (quotes.length && quotes[0].name) {
+        name = quotes[0].name;
+      } else {
+        name = code;
+      }
+    } catch (e) {
+      name = code;
+    }
+  }
 
   const portfolio = getPortfolio();
   const existing = portfolio.find(s => s.code === code);
