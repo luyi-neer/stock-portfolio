@@ -415,7 +415,7 @@ body {
 
 .switch-btn {
   position: fixed;
-  top: calc(var(--safe-top) + 10px);
+  bottom: calc(74px + var(--safe-bottom));
   right: 16px;
   width: 40px;
   height: 40px;

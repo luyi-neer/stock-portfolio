@@ -9,44 +9,83 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleW
 
 
 def get_stock_news(code: str, limit: int = 15) -> list:
-    """从新浪获取个股新闻（HTML解析）"""
+    """从东方财富获取个股新闻"""
     if code.startswith('6') or code.startswith('9'):
-        symbol = f"sh{code}"
+        market = '1'
     else:
-        symbol = f"sz{code}"
+        market = '0'
 
-    url = f"https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllNewsStock.php?symbol={symbol}&Page=1"
+    url = (
+        f"https://search-api-web.eastmoney.com/search/jsonp?"
+        f"cb=cb&param=%7B%22uid%22%3A%22%22%2C%22keyword%22%3A%22{code}%22%2C"
+        f"%22type%22%3A%5B%22cmsArticleWebOld%22%5D%2C%22client%22%3A%22web%22%2C"
+        f"%22clientType%22%3A%22web%22%2C%22clientVersion%22%3A%22curr%22%2C"
+        f"%22param%22%3A%7B%22cmsArticleWebOld%22%3A%7B%22searchScope%22%3A%22default%22%2C"
+        f"%22sort%22%3A%22default%22%2C%22pageIndex%22%3A1%2C%22pageSize%22%3A{limit}%2C"
+        f"%22preTag%22%3A%22%22%2C%22postTag%22%3A%22%22%7D%7D%7D"
+    )
+
     req = urllib.request.Request(url, headers=HEADERS)
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            text = resp.read().decode('gbk', errors='ignore')
+            text = resp.read().decode()
+    except Exception:
+        return get_eastmoney_stock_news(code, market, limit)
+
+    match = re.search(r'cb\((\{.*\})\)', text, re.DOTALL)
+    if not match:
+        return get_eastmoney_stock_news(code, market, limit)
+
+    try:
+        data = json.loads(match.group(1))
+    except Exception:
+        return get_eastmoney_stock_news(code, market, limit)
+
+    news_list = []
+    results = data.get('result', {})
+    articles = results.get('cmsArticleWebOld', {}).get('list', [])
+
+    for item in articles[:limit]:
+        title = item.get('title', '').replace('<em>', '').replace('</em>', '')
+        if not title:
+            continue
+        news_list.append({
+            'title': title,
+            'time': item.get('date', ''),
+            'source': item.get('mediaName', '东方财富'),
+            'url': item.get('url', ''),
+        })
+
+    return news_list if news_list else get_eastmoney_stock_news(code, market, limit)
+
+
+def get_eastmoney_stock_news(code: str, market: str, limit: int = 15) -> list:
+    """东方财富个股资讯接口（备用）"""
+    url = (
+        f"https://np-listapi.eastmoney.com/comm/web/getNewsByStock?"
+        f"code={code}&market={market}&pageSize={limit}&page=1"
+    )
+    req = urllib.request.Request(url, headers=HEADERS)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
     except Exception:
         return get_market_news(limit)
 
     news_list = []
-    items = re.findall(
-        r'<a href="(https?://[^"]+)"[^>]*target="_blank">([^<]+)</a>.*?(\d{4}-\d{2}-\d{2})',
-        text, re.DOTALL
-    )
-    if not items:
-        items = re.findall(
-            r'(\d{4}-\d{2}-\d{2}).*?<a href="(https?://[^"]+)"[^>]*>([^<]+)</a>',
-            text
-        )
-        items = [(url_val, title, date) for date, url_val, title in items]
-
-    for item_url, title, date in items[:limit]:
-        title = title.strip()
-        if not title or title in ('财经首页', '股票', '基金', '港股', '美股'):
+    items = data.get('data', {}).get('list', []) if data.get('data') else []
+    for item in items[:limit]:
+        title = item.get('title', '')
+        if not title:
             continue
         news_list.append({
             'title': title,
-            'time': date,
-            'source': '新浪财经',
-            'url': item_url,
+            'time': item.get('showTime', item.get('newsDate', '')),
+            'source': item.get('source', '东方财富'),
+            'url': item.get('url', item.get('infoUrl', '')),
         })
 
-    return news_list[:limit] if news_list else get_market_news(limit)
+    return news_list if news_list else get_market_news(limit)
 
 
 def get_market_news(limit: int = 20) -> list:
