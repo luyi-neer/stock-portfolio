@@ -75,7 +75,16 @@
     </main>
   </div>
 
-  <a href="javascript:void(0)" onclick="window.history.length>1?history.back():location.href='/'" class="switch-btn" title="切换应用">⚡</a>
+  <a href="javascript:void(0)" onclick="goLauncher()" class="switch-btn" title="切换应用">⚡</a>
+  <script>
+  function goLauncher(){
+    if(window.Capacitor||navigator.userAgent.includes('wv')){
+      location.href='https://localhost/';
+    } else {
+      history.back();
+    }
+  }
+  </script>
   <script src="/js/app.js"></script>
 </body>
 </html>
