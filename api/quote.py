@@ -15,7 +15,7 @@ def get_realtime_quote(codes: list) -> list:
         code = code.strip()
         if code.startswith('6') or code.startswith('9'):
             secids.append(f"1.{code}")
-        elif code.startswith('0') or code.startswith('3'):
+        elif code.startswith('0') or code.startswith('3') or code.startswith('1'):
             secids.append(f"0.{code}")
         elif code.startswith('8') or code.startswith('4'):
             secids.append(f"0.{code}")

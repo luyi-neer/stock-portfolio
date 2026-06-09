@@ -45,26 +45,40 @@ async function refreshQuotes() {
       const quote = quotes.find(q => q.code === stock.code) || {};
       const price = quote.price || 0;
       const changePct = quote.change_pct || 0;
-      const marketValue = price * stock.shares;
       const cost = stock.cost * stock.shares;
-      const profit = marketValue - cost;
-      totalValue += marketValue;
-      totalCost += cost;
 
-      const colorClass = changePct > 0 ? 'up' : (changePct < 0 ? 'down' : '');
-      const profitClass = profit > 0 ? 'up' : (profit < 0 ? 'down' : '');
+      if (price > 0) {
+        const marketValue = price * stock.shares;
+        const profit = marketValue - cost;
+        totalValue += marketValue;
+        totalCost += cost;
 
-      return `<div class="card stock-card">
-        <div>
-          <div class="stock-name">${stock.name}</div>
-          <div class="stock-code">${stock.code} | ${stock.shares}股</div>
-        </div>
-        <div>
-          <div class="stock-price ${colorClass}">${price ? price.toFixed(2) : '--'}</div>
-          <div class="stock-change ${colorClass}">${changePct > 0 ? '+' : ''}${changePct.toFixed(2)}%</div>
-          <div class="stock-change ${profitClass}">${profit >= 0 ? '+' : ''}${profit.toFixed(0)}元</div>
-        </div>
-      </div>`;
+        const colorClass = changePct > 0 ? 'up' : (changePct < 0 ? 'down' : '');
+        const profitClass = profit > 0 ? 'up' : (profit < 0 ? 'down' : '');
+
+        return `<div class="card stock-card">
+          <div>
+            <div class="stock-name">${stock.name}</div>
+            <div class="stock-code">${stock.code} | ${stock.shares}股</div>
+          </div>
+          <div>
+            <div class="stock-price ${colorClass}">${price.toFixed(2)}</div>
+            <div class="stock-change ${colorClass}">${changePct > 0 ? '+' : ''}${changePct.toFixed(2)}%</div>
+            <div class="stock-change ${profitClass}">${profit >= 0 ? '+' : ''}${profit.toFixed(0)}元</div>
+          </div>
+        </div>`;
+      } else {
+        return `<div class="card stock-card">
+          <div>
+            <div class="stock-name">${stock.name}</div>
+            <div class="stock-code">${stock.code} | ${stock.shares}股</div>
+          </div>
+          <div>
+            <div class="stock-price" style="color:var(--text-dim)">获取失败</div>
+            <div class="stock-change" style="color:var(--text-dim)">未计入盈亏</div>
+          </div>
+        </div>`;
+      }
     }).join('');
 
     document.getElementById('portfolio-list').innerHTML = listHtml;
